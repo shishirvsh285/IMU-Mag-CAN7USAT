@@ -1,2 +1,10 @@
 __pycache__/
 *.pyc
+
+# results: logs, plots, reports (kept on disk, not in git)
+*.csv
+*.png
+*_results.txt
+*_report.txt
+*.docx
+*.xlsx
