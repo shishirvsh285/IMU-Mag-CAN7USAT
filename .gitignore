@@ -8,3 +8,8 @@ __pycache__/
 *_report.txt
 *.docx
 *.xlsx
+
+# caches made by the simulator / tools
+*.pkl
+imu_full_cal.json
+imu_full_cal_report.txt
