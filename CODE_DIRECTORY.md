@@ -159,3 +159,4 @@ Installed libraries: TinyGPSPlus 1.0.3, Adafruit BusIO 1.17.4, SD 1.3.0.
 - 17 Oct 2026: added the adaptive Mahony set (`adaptive_mahony.py`, `AdaptiveMahony.h`, `adaptive_mahony_uno`, `descent_sim.py`, `test_adaptive.py`, `tune_sweep.py`, `adaptive_compare.py`, `cpp_check`). `full_calibration.py` now also writes `USE_MAG`, `MAG_DIP_DEG`, `MAG_FIELD_MG` into `imu_cal.h`. Uno left running `motioncal_stream`.
 - 17 Oct 2026: added `physical_test.py` (guided physical test with scoring) and `physical_test_fake.py`.
 - 17 Oct 2026: `mahony_live.py` now shows a live probability density (histogram + kernel density, mean, sd) of roll, pitch, yaw over the last 10 s.
+- 17 Oct 2026: folder is now a git repo, pushed to https://github.com/shishirvsh285/IMU-Mag-CAN7USAT (branch main). `__pycache__` is ignored. `Downloads\gps_test` is not in it.
