@@ -1,0 +1,43 @@
+  bench seed 0 done
+  bench seed 1 done
+  bench seed 2 done
+  bench seed 3 done
+  bench seed 4 done
+  parachute seed 0 done
+  parachute seed 1 done
+  parachute seed 2 done
+  parachute seed 3 done
+  parachute seed 4 done
+  parafoil seed 0 done
+  parafoil seed 1 done
+  parafoil seed 2 done
+  parafoil seed 3 done
+  parafoil seed 4 done
+  magdist seed 0 done
+  magdist seed 1 done
+  magdist seed 2 done
+  magdist seed 3 done
+  magdist seed 4 done
+
+Errors after deployment, mean over seeds   (deg)
+scenario   filter      tilt rms tilt p95 tilt max  head rms head p95 head max
+bench      standard        0.32     0.56     0.81      1.04     1.80     2.16
+bench      adaptive        0.31     0.56     0.73      0.95     1.66     1.98
+bench      adapt+GPS       0.31     0.56     0.73      0.95     1.66     1.98
+
+parachute  standard        9.37    16.04    26.32      3.41     6.60    13.27
+parachute  adaptive        4.49     7.70    13.21      2.69     5.05    10.21
+parachute  adapt+GPS       4.49     7.70    13.21      2.69     5.05    10.21
+
+parafoil   standard       12.90    20.02    24.13      5.04     9.76    14.61
+parafoil   adaptive        3.62     5.91     6.78      4.78     6.42    34.66
+parafoil   adapt+GPS       2.23     3.83     4.81      4.48     4.81    34.19
+
+magdist    standard        9.47    16.16    26.64      5.98    11.19    36.59
+magdist    adaptive        4.50     7.70    13.21      2.94     5.53    10.74
+magdist    adapt+GPS       4.49     7.69    13.20      2.94     5.53    10.74
+
+saved adaptive_test_bench.png
+saved adaptive_test_parachute.png
+saved adaptive_test_parafoil.png
+saved adaptive_test_magdist.png

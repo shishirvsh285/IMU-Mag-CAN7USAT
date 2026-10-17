@@ -1,0 +1,9 @@
+{
+  "source": "PJRC MotionCal screenshot, 2026-10-07 22:44 (Gaps 12.9 %, Variance 4.4 %, Wobble 1.1 %, Fit Error 4.4 %)",
+  "offset_uT": [8.24, 3.71, 5.88],
+  "invW": [[0.825, -0.100, -0.039],
+           [-0.100, 1.135, 0.003],
+           [-0.039, 0.003, 1.081]],
+  "field_uT": 30.66,
+  "usage": "cal_uT = invW @ (raw_uT - offset_uT); here raw_mG = 10 * raw_uT"
+}
