@@ -97,6 +97,9 @@ the IIS2MDC frame is left-handed.
 
 ### 5. Watch the attitude live
 
+For calibrated heading on the ground station use `ground/heading.py` (see [`ground/README.md`](ground/README.md)).
+The tools below are the development versions.
+
 ```bash
 python mahony_live.py --port COM5          # 6-DOF: accel + gyro
 python mahony_live.py --port COM5 --mag    # 9-DOF: also the magnetometer
@@ -144,6 +147,12 @@ or on the Uno).
 ---
 
 ## Repository layout
+
+### Ground station: [`ground/`](ground)
+
+A self-contained folder with only what the ground station needs: the stream sketch, `full_calibration.py`,
+and `heading.py`, which applies the calibration and runs the Mahony filter to give roll, pitch and compass
+heading (live from USB, or offline from a saved log). Start there if you only want to use the board.
 
 ### Arduino sketches
 

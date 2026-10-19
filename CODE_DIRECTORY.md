@@ -161,3 +161,4 @@ Installed libraries: TinyGPSPlus 1.0.3, Adafruit BusIO 1.17.4, SD 1.3.0.
 - 17 Oct 2026: `mahony_live.py` now shows a live probability density (histogram + kernel density, mean, sd) of roll, pitch, yaw over the last 10 s.
 - 17 Oct 2026: folder is now a git repo, pushed to https://github.com/shishirvsh285/IMU-Mag-CAN7USAT (branch main). `__pycache__` is ignored. `Downloads\gps_test` is not in it.
 - 17 Oct 2026: added README.md files (root + each sketch folder, AdaptiveMahony, cpp_check, tools) and requirements.txt for the git repo.
+- 19 Oct 2026: added `ground/` (ground station only): `motioncal_stream`, `full_calibration.py`, `heading.py` (calibration + Mahony -> roll, pitch, compass heading, live or `--replay`), copies of `mahony.py` and `adaptive_mahony.py`, README. Copies: change both if a filter changes.
