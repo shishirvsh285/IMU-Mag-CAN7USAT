@@ -33,6 +33,8 @@ int rd1(uint8_t dev, uint8_t reg)
   return rd(dev, reg, &v, 1) ? v : -1;
 }
 
+int8_t casZX = 0;                         // read from the chip in bmiInit()
+
 bool bmiInit()
 {
   wr(BMI, 0x7E, 0xB6); delay(5);          // soft reset
@@ -56,10 +58,14 @@ bool bmiInit()
   for (int t = 0; t < 10 && (st & 0x0F) != 1; t++) { delay(5); st = rd1(BMI, 0x21); }
   if ((st & 0x0F) != 1) return false;
   wr(BMI, 0x7D, 0x0E);                    // acc + gyr + temp on
-  wr(BMI, 0x40, 0xA8);                    // acc 100 Hz
-  wr(BMI, 0x42, 0xE9);                    // gyr 200 Hz
+  wr(BMI, 0x40, 0xA7);                    // acc 50 Hz, normal, filter_perf (matches the 50 Hz read rate)
+  wr(BMI, 0x42, 0xE7);                    // gyr 50 Hz, normal, noise+filter perf (no aliasing at 50 Hz)
   wr(BMI, 0x7C, 0x02);                    // power save off
   delay(50);
+  // Gyro cross-axis post-processing factor (datasheet 4.6.10): x -= factor_zx * z / 2^9
+  wr(BMI, 0x2F, 0x00);                    // FEAT_PAGE = 0
+  uint8_t cb[2];
+  if (rd(BMI, 0x3C, cb, 2)) casZX = (int8_t)((cb[0] & 0x7F) << 1) >> 1;   // GYR_CAS.factor_zx, 7-bit signed
   return true;
 }
 
@@ -93,6 +99,7 @@ void setup()
       delay(1000);
     }
   }
+  Serial.print(F("# GYR_CAS factor_zx = ")); Serial.println(casZX);
 }
 
 void loop()
@@ -111,8 +118,9 @@ void loop()
   for (int i = 0; i < 3; i++) r[6 + i] = (int16_t)(mb[2 * i + 1] << 8 | mb[2 * i]);
 
   long out[9];
-  for (int i = 0; i < 3; i++) out[i] = clamp16((long)r[i] * 2);                       // 4096 -> 8192 counts/g
-  for (int i = 3; i < 6; i++) out[i] = clamp16(lround(r[i] * (16.0 / 16.4)));          // 16.4 -> 16 counts/dps
+  for (int i = 0; i < 3; i++) out[i] = (long)r[i] * 2;     // 4096 -> 8192 counts/g, NOT clamped: keeps up to +-8 g
+  float g[3] = {r[3] - casZX * (float)r[5] / 512.0f, (float)r[4], (float)r[5]};       // CAS correction on X
+  for (int i = 0; i < 3; i++) out[3 + i] = clamp16(lround(g[i] * (16.0 / 16.384)));   // 16.384 -> 16 counts/dps
   for (int i = 6; i < 9; i++) out[i] = clamp16(lround(r[i] * 1.5));                    // 1.5 mG/LSB -> 1 mG = 0.1 uT
 
   Serial.print(F("Raw:"));
