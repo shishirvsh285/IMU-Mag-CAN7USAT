@@ -28,7 +28,7 @@ Lines end in CR LF, because MotionCal only ends a line on CR.
   filter, block data update. The loop is paced on its data-ready flag.
 - I2C at 100 kHz with a 3 ms timeout, so a loose wire resets the bus instead of hanging.
 
-If it prints `INIT FAILED`, check the wiring with `../i2c_probe/`. If it goes silent after rough
+If it prints `INIT FAILED`, check the wiring with `../../i2c_probe/`. If it goes silent after rough
 handling, re-upload it or replug the USB.
 
 Used by: `full_calibration.py`, `mahony_live.py`, `adaptive_compare.py`, `physical_test.py`,
