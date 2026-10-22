@@ -31,7 +31,8 @@ its accel display wraps. That does not matter for magnetometer calibration, whic
   `# GYR_CAS factor_zx = N` (ours is 2, that is 0.39 % of Z leaking into X).
 - IIS2MDC: 50 Hz continuous, high resolution, temperature compensation, offset cancellation, low-pass
   filter, block data update. The loop is paced on its data-ready flag.
-- I2C at 100 kHz with a 3 ms timeout, so a loose wire resets the bus instead of hanging.
+- I2C at 400 kHz (fast mode, allowed by both chips, needed for a full 50 Hz) with a 3 ms timeout, so a loose wire resets the bus instead of hanging.
+- If a chip does not start, the sketch prints `INIT FAILED  BMI270=x  IIS2MDC=y (try n, retrying)` and keeps retrying instead of stopping. If no sample arrives for 1 s while running, it prints `# no data for 1 s, re-initialising` and restarts both chips.
 
 If it prints `INIT FAILED`, check the wiring with `../i2c_probe/`. If it goes silent after rough
 handling, re-upload it or replug the USB.

@@ -4,6 +4,7 @@ ap = argparse.ArgumentParser(); ap.add_argument("--port", default="COM5"); args 
 ser = serial.Serial(args.port, 115200, timeout=1)
 print("COM5 open, Uno restarting ... (Ctrl+C or close the window to stop)")
 time.sleep(2.0)
+ser.reset_input_buffer()   # Windows can replay a stale chunk of the last session on open: drop it
 print(" accel (g)                 |a|     gyro (deg/s)              mag (mG)               |B|")
 n = 0; t0 = time.time()
 try:

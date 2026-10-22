@@ -86,30 +86,39 @@ void setup()
 {
   Serial.begin(115200);
   Wire.begin();
-  Wire.setClock(400000);                  // 400 kHz to keep up with 50 Hz output
+  Wire.setClock(400000);                  // 400 kHz (fast mode, both chips allow it): needed for a full 50 Hz
+  Wire.setWireTimeout(3000, true);        // a stuck bus resets itself instead of hanging the Uno
   delay(20);
-  bool a = bmiInit();
-  bool m = magInit();
-  if (!a || !m)
+  // retry until both chips start, instead of giving up forever
+  for (uint8_t tries = 1; ; tries++)
   {
-    while (1)
-    {
-      Serial.print(F("INIT FAILED  BMI270=")); Serial.print(a);
-      Serial.print(F("  IIS2MDC=")); Serial.println(m);
-      delay(1000);
-    }
+    bool a = bmiInit();
+    bool m = magInit();
+    if (a && m) break;
+    Serial.print(F("INIT FAILED  BMI270=")); Serial.print(a);
+    Serial.print(F("  IIS2MDC=")); Serial.print(m);
+    Serial.print(F("  (try ")); Serial.print(tries); Serial.println(F(", retrying)"));
+    Wire.end(); delay(500); Wire.begin(); Wire.setClock(400000); Wire.setWireTimeout(3000, true);
   }
   Serial.print(F("# GYR_CAS factor_zx = ")); Serial.println(casZX);
 }
 
+unsigned long lastSample = 0;
+
 void loop()
 {
+  if (millis() - lastSample > 1000)       // no data for 1 s: re-init both chips
+  {
+    Serial.println(F("# no data for 1 s, re-initialising"));
+    bmiInit(); magInit();
+    lastSample = millis();
+  }
   // pace on the magnetometer's 50 Hz data-ready
   int st = rd1(MAG, 0x67);
   if (st < 0 || !(st & 0x08)) return;
 
   uint8_t mb[6];
-  for (uint8_t i = 0; i < 6; i++) { int v = rd1(MAG, 0x68 + i); if (v < 0) return; mb[i] = v; }
+  if (!rd(MAG, 0x68 | 0x80, mb, 6)) return;    // OUTX_L..OUTZ_H in one burst (MSB of address = auto-increment, datasheet 6.1.1)
   uint8_t b[12];
   if (!rd(BMI, 0x0C, b, 12)) return;
 
@@ -123,6 +132,7 @@ void loop()
   for (int i = 0; i < 3; i++) out[3 + i] = clamp16(lround(g[i] * (16.0 / 16.384)));   // 16.384 -> 16 counts/dps
   for (int i = 6; i < 9; i++) out[i] = clamp16(lround(r[i] * 1.5));                    // 1.5 mG/LSB -> 1 mG = 0.1 uT
 
+  lastSample = millis();
   Serial.print(F("Raw:"));
   for (int i = 0; i < 9; i++) { Serial.print(out[i]); if (i < 8) Serial.print(','); }
   Serial.print(F("\r\n"));   // MotionCal ends a line on CR (13), so CR LF is required
