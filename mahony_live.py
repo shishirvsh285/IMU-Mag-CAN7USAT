@@ -8,6 +8,14 @@ Uno must run motioncal_stream (or mag_calibrated). It sends ~50 Hz lines:
   python mahony_live.py --port COM5 --kp 2 --ki 0.1
   python mahony_live.py --port COM5 --mag           also use the magnetometer for yaw (see notes)
 
+Calibration files are found automatically (in this folder or in ground/):
+  imu_full_cal.json (full_calibration.py): accel offset/gain, mag hard + soft iron, AND the measured
+                     mag -> IMU axis map. Used first if present.
+  mag_cal.json      (mag_calibrate.py): mag hard + soft iron only, axis map from --mag-map.
+  If the Uno runs mag_cal_check (it prints "# MAG CAL ..." at start), the magnetometer is already
+  calibrated on the Uno, so it is NOT corrected a second time here.
+  --mag-cal FILE / --full-cal FILE pick a file, --mag-cal none turns the correction off.
+
 At start, keep the board still for 3 s: the gyro bias is measured then.
 If imu_cal.json from imu_calibrate.py looks valid, its accel offsets/gains are applied.
 Close the window to stop. Angles are saved to mahony_<time>.csv.
@@ -60,6 +68,20 @@ def load_accel_cal(path):
     return None
 
 
+def find_file(arg, name):
+    """explicit path, 'none', or look in this folder and in ground/"""
+    if arg and arg.lower() == "none":
+        return None
+    if arg:
+        return arg if os.path.exists(arg) else None
+    here = os.path.dirname(os.path.abspath(__file__))
+    for d in (os.getcwd(), here, os.path.join(here, "ground")):
+        p = os.path.join(d, name)
+        if os.path.exists(p):
+            return p
+    return None
+
+
 def mag_mapper(spec):
     parts = [p.strip() for p in spec.split(",")]
     idx = {"x": 0, "y": 1, "z": 2}
@@ -73,18 +95,55 @@ def main():
     ap.add_argument("--kp", type=float, default=1.0)
     ap.add_argument("--ki", type=float, default=0.05)
     ap.add_argument("--mag", action="store_true")
-    ap.add_argument("--mag-map", default="x,-y,z")
+    ap.add_argument("--mag-map", default=None, help="mag axes in BMI270 axes, e.g. x,-y,z (default: from "
+                    "imu_full_cal.json, else x,-y,z)")
+    ap.add_argument("--mag-cal", default=None, help="mag_cal.json from mag_calibrate.py ('none' = off)")
+    ap.add_argument("--full-cal", default=None, help="imu_full_cal.json from full_calibration.py ('none' = off)")
     ap.add_argument("--cal", default="imu_cal.json")
     ap.add_argument("--window", type=float, default=30.0)
     ap.add_argument("--pdf-window", type=float, default=10.0, help="seconds of data in the density plots")
     args = ap.parse_args()
 
     acal = load_accel_cal(args.cal)
-    mmap = mag_mapper(args.mag_map)
+    # ---- magnetometer calibration: full cal first, then mag-only cal ----
+    full_p, mag_p = find_file(args.full_cal, "imu_full_cal.json"), find_file(args.mag_cal, "mag_cal.json")
+    hard, soft, map_mat, mag_src = np.zeros(3), np.eye(3), None, "raw (no calibration file)"
+    if full_p:
+        c = json.load(open(full_p))
+        hard, soft = np.array(c["mag_hard_iron_mG"]), np.array(c["mag_soft_iron"])
+        map_mat = np.array(c["mag_axis_map_matrix"])
+        mag_src = f"{os.path.basename(full_p)} (map {c.get('mag_axis_map', '?')})"
+        off, gain = np.array(c["accel_offset_g"]), np.array(c["accel_gain"])
+        acal = (off, gain)
+    elif mag_p:
+        c = json.load(open(mag_p))
+        hard, soft = np.array(c["hard_iron_mG"]), np.array(c["soft_iron_W"])
+        mag_src = f"{os.path.basename(mag_p)} ({c.get('created', '?')}, spread {c.get('B_spread_pct_cal', '?')} %)"
+    if args.mag_map:
+        map_mat = None
+    mmap = mag_mapper(args.mag_map or "x,-y,z")
+
     ser = serial.Serial(args.port, 115200, timeout=0.05)
     print("Port open, Uno restarting ...")
-    time.sleep(2.5)
+    time.sleep(0.3)
+    ser.reset_input_buffer()                      # Windows can replay stale data when the port opens
+    uno_cal = False
+    t0 = time.time()
+    while time.time() - t0 < 2.2:                 # read the sketch's start-up lines
+        line = ser.readline().decode("ascii", errors="ignore").strip()
+        if line.startswith("# MAG CAL") and "NONE" not in line:
+            uno_cal = True
+            print("Uno says:", line)
+    if uno_cal:
+        hard, soft = np.zeros(3), np.eye(3)
+        mag_src = "calibrated ON THE UNO (mag_cal_check)" + ("" if map_mat is None else ", map from " + os.path.basename(full_p))
     ser.reset_input_buffer()
+    if args.mag:
+        print("Magnetometer:", mag_src)
+
+    def mag_vec(v):
+        m = soft @ (np.array(v, float) - hard)
+        return list(map_mat @ m) if map_mat is not None else mmap(m)
 
     # ---- gyro bias + sample rate, board still ----
     print("Keep the board STILL for 3 s (measuring gyro bias) ...")
@@ -154,7 +213,7 @@ def main():
         pax.append(a)
     pax[2].set_xlabel("angle (deg)", fontsize=9, color=TEXT_2)
     status = fig.text(0.99, 0.995, "", ha="right", va="top", fontsize=9, color=TEXT_2, family="monospace")
-    fig.text(0.01, 0.995, f"Mahony  Kp={args.kp}  Ki={args.ki}  {'9-DOF (mag ' + args.mag_map + ')' if args.mag else '6-DOF accel+gyro'}"
+    fig.text(0.01, 0.995, f"Mahony  Kp={args.kp}  Ki={args.ki}  {'9-DOF, mag: ' + mag_src if args.mag else '6-DOF accel+gyro'}"
              f"   accel cal {'ON' if acal else 'off'}", ha="left", va="top", fontsize=10, color=TEXT_2)
     fig.tight_layout(rect=(0, 0, 1, 0.96))
 
@@ -172,7 +231,7 @@ def main():
             an = float(np.linalg.norm(a))
             used = abs(an - 1.0) < 0.15          # ignore accel while it sees more than gravity
             if args.mag:
-                m = mmap(v[6:9])
+                m = mag_vec(v[6:9])
                 f.update(*g, *a, dt, *m, accel_ok=used)
             else:
                 f.update(*g, *a, dt, accel_ok=used)
