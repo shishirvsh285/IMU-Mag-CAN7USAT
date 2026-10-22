@@ -13,6 +13,7 @@ copies of the ones in the repo root, so if you change a filter, change both.)
 | `heading.py` | Step 2. Applies the calibration, runs the Mahony filter, gives roll, pitch, heading |
 | `adaptive_mahony.py` | The adaptive Mahony filter (default) |
 | `mahony.py` | The standard Mahony filter (`--filter standard`) |
+| `mag_calibrate.py`, `mag_cal_check/` | Magnetometer-only calibration and its MotionCal check (see below) |
 | `requirements.txt` | `pip install -r requirements.txt` |
 
 ## 1. Set up
@@ -74,6 +75,27 @@ Useful options:
 | `--filter standard` | Plain Mahony instead of adaptive |
 | `--declination D` | Add the magnetic declination (deg, east positive) to get **true** north. Mumbai is close to 0. |
 | `--cal file.json` | Use a different calibration file |
+
+## Magnetometer only: calibrate and check in MotionCal
+
+| File | What it does |
+|---|---|
+| `mag_calibrate.py` | Magnetometer-only calibration: 60 s tumble, ellipsoid fit, hard iron $\mathbf b$ and soft iron $W$ |
+| `mag_cal_check/` | Uno sketch that applies that calibration on board and streams in MotionCal's format |
+
+1. Close MotionCal and the Serial Monitor (only one program can hold the port), with `motioncal_stream` on the Uno.
+2. `python mag_calibrate.py --port COM5` and turn the board through every direction until coverage passes 80 %.
+   It prints the result, shows raw vs calibrated clouds, and writes `mag_cal.json`, `mag_cal_report.txt`
+   and **`mag_cal_check/mag_cal.h`** (so the sketch picks it up with no copying).
+3. Upload `mag_cal_check/` to the Uno. The first line after reset says which calibration is loaded.
+4. Open `tools/MotionCal.exe`, pick the port, tumble again. A good calibration shows a sphere centred on
+   zero, MotionCal's own "Magnetic Offset" near 0 and a small fit error.
+
+$$\mathbf m_{\text{cal}} = W\,(\mathbf m_{\text{raw}} - \mathbf b)$$
+
+The result stays in the IIS2MDC's own axes, which is what MotionCal expects. For heading, `full_calibration.py`
+also finds the magnetometer-to-IMU axis map. `python mag_calibrate.py --refit mag_cal_<time>.csv` redoes the fit
+from a saved tumble without the board.
 
 ## What the numbers mean
 
