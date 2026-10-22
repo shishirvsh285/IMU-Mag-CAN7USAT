@@ -11,7 +11,8 @@ Uno must run motioncal_stream (or mag_calibrated). It sends ~50 Hz lines:
 Calibration files are found automatically (in this folder or in ground/):
   imu_full_cal.json (full_calibration.py): accel offset/gain, mag hard + soft iron, AND the measured
                      mag -> IMU axis map. Used first if present.
-  mag_cal.json      (mag_calibrate.py): mag hard + soft iron only, axis map from --mag-map.
+  mag_cal.json      (mag_calibrate.py): mag hard + soft iron, plus the axis map once mag_map_check.py
+                     has measured it (else --mag-map).
   If the Uno runs mag_cal_check (it prints "# MAG CAL ..." at start), the magnetometer is already
   calibrated on the Uno, so it is NOT corrected a second time here.
   --mag-cal FILE / --full-cal FILE pick a file, --mag-cal none turns the correction off.
@@ -118,7 +119,10 @@ def main():
     elif mag_p:
         c = json.load(open(mag_p))
         hard, soft = np.array(c["hard_iron_mG"]), np.array(c["soft_iron_W"])
-        mag_src = f"{os.path.basename(mag_p)} ({c.get('created', '?')}, spread {c.get('B_spread_pct_cal', '?')} %)"
+        if "imu_axis_map_matrix" in c:                 # measured by mag_map_check.py
+            map_mat = np.array(c["imu_axis_map_matrix"])
+        mag_src = (f"{os.path.basename(mag_p)} ({c.get('created', '?')}, spread {c.get('B_spread_pct_cal', '?')} %, "
+                   f"map {c.get('imu_axis_map', (args.mag_map or 'x,-y,z') + ' UNCHECKED')})")
     if args.mag_map:
         map_mat = None
     mmap = mag_mapper(args.mag_map or "x,-y,z")
