@@ -206,8 +206,10 @@ def main():
                 v = np.fromiter(E[i], float)[sel]
                 if len(v) < 5:
                     continue
-                if i == 2 and np.ptp(v) > 180:                 # yaw crossing +-180: unwrap
+                if i != 1 and np.ptp(v) > 180:                 # roll / yaw crossing +-180
                     v = np.degrees(np.unwrap(np.radians(v)))
+                    if np.mean(v) > 180: v = v - 360
+                    if np.mean(v) < -180: v = v + 360
                 mu, sd = v.mean(), v.std()
                 half = max(4 * sd, (v.max() - v.min()) / 2 + sd, 0.5)
                 lo, hi = mu - half, mu + half
