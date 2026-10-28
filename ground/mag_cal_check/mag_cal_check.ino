@@ -9,7 +9,7 @@
 #include "bmi270_config.h"
 #include "mag_cal.h"
 
-const uint8_t BMI = 0x68;   // BMI270, SDO = GND
+uint8_t BMI = 0x68;         // BMI270: 0x68 if SDO = GND, 0x69 if SDO = 3.3 V. Found at start-up.
 const uint8_t MAG = 0x1E;   // IIS2MDC
 
 bool wr(uint8_t dev, uint8_t reg, uint8_t val)
@@ -40,6 +40,12 @@ int8_t casZX = 0;                         // read from the chip in bmiInit()
 
 bool bmiInit()
 {
+  // use whichever BMI270 address answers (boards differ in how SDO is wired)
+  for (uint8_t a = 0x68; a <= 0x69; a++)
+  {
+    Wire.beginTransmission(a);
+    if (Wire.endTransmission() == 0) { BMI = a; break; }
+  }
   wr(BMI, 0x7E, 0xB6); delay(5);          // soft reset
   rd1(BMI, 0x00);                         // dummy read
   if (rd1(BMI, 0x00) != 0x24) return false;
@@ -103,6 +109,7 @@ void setup()
     Serial.print(F("  (try ")); Serial.print(tries); Serial.println(F(", retrying)"));
     Wire.end(); delay(500); Wire.begin(); Wire.setClock(400000); Wire.setWireTimeout(3000, true);
   }
+  Serial.print(F("# BMI270 at 0x")); Serial.println(BMI, HEX);
   Serial.print(F("# GYR_CAS factor_zx = ")); Serial.println(casZX);
   Serial.print(F("# MAG CAL ")); Serial.print(F(MAG_CAL_STAMP));
   Serial.print(F("  field ")); Serial.print(MAG_FIELD_MG, 1); Serial.println(F(" mG"));
