@@ -14,6 +14,7 @@ copies of the ones in the repo root, so if you change a filter, change both.)
 | `adaptive_mahony.py` | The adaptive Mahony filter (default) |
 | `mahony.py` | The standard Mahony filter (`--filter standard`) |
 | `mag_calibrate.py`, `mag_cal_check/` | Magnetometer-only calibration and its MotionCal check (see below) |
+| `esp32/` | ESP32 DevKit V1 versions of `motioncal_stream` and `mag_cal_check` (wiring: SCL D22, SDA D21, 3V3, GND). See `esp32/README.md` |
 | `requirements.txt` | `pip install -r requirements.txt` |
 
 ## 1. Set up

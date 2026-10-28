@@ -3,7 +3,7 @@ mag_calibrate.py : magnetometer-only calibration (hard iron + soft iron) for the
 
 Uno must run motioncal_stream (raw data: Raw:ax,ay,az,gx,gy,gz,mx,my,mz, mag in mG).
 
-  python mag_calibrate.py --port COM5               60 s tumble
+  python mag_calibrate.py --port COM5               60 s tumble (Uno or ESP32, any COM port)
   python mag_calibrate.py --port COM5 --time 90     longer tumble
   python mag_calibrate.py --port COM5 --no-plot     no plot window at the end
 
@@ -21,6 +21,7 @@ Outputs (next to this script):
   mag_cal.json                       numbers, quality, date
   mag_cal_report.txt                 readable summary
   mag_cal_check/mag_cal.h            constants for the mag_cal_check sketch (upload it, open MotionCal)
+  esp32/mag_cal_check_esp32/mag_cal.h  the same, for the ESP32 version
   mag_cal_<time>.csv                 the raw tumble data, so the fit can be redone later
   mag_cal_<time>.png                 raw vs calibrated point clouds (3 projections)
 """
@@ -115,8 +116,10 @@ def write_outputs(m, b, W, R, radii, keep, stamp, plot):
     with open(os.path.join(HERE, "mag_cal_report.txt"), "w") as f:
         f.write(report + "\n")
 
-    hdir = os.path.join(HERE, "mag_cal_check")
-    os.makedirs(hdir, exist_ok=True)
+    hdirs = [os.path.join(HERE, "mag_cal_check")]
+    esp = os.path.join(HERE, "esp32", "mag_cal_check_esp32")
+    if os.path.isdir(esp):
+        hdirs.append(esp)
     fmt = lambda v: ", ".join(f"{x:.6f}f" for x in v)
     h = ["// Written by mag_calibrate.py " + stamp,
          "// m_cal = MAG_SOFT * (m_raw - MAG_HARD), mG, IIS2MDC axes",
@@ -125,9 +128,12 @@ def write_outputs(m, b, W, R, radii, keep, stamp, plot):
          "const float MAG_SOFT[3][3] = {" + ", ".join("{" + fmt(r) + "}" for r in W) + "};",
          f"const float MAG_FIELD_MG   = {R:.1f}f;",
          f"#define MAG_CAL_STAMP \"{stamp}\""]
-    with open(os.path.join(hdir, "mag_cal.h"), "w") as f:
-        f.write("\n".join(h) + "\n")
-    print(f"Saved mag_cal.json, mag_cal_report.txt and mag_cal_check{os.sep}mag_cal.h")
+    for hdir in hdirs:
+        os.makedirs(hdir, exist_ok=True)
+        with open(os.path.join(hdir, "mag_cal.h"), "w") as f:
+            f.write("\n".join(h) + "\n")
+    print("Saved mag_cal.json, mag_cal_report.txt and mag_cal.h in:",
+          ", ".join(os.path.relpath(d, HERE) for d in hdirs))
 
     if plot is not None:
         import matplotlib
